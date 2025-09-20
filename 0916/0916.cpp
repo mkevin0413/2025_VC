@@ -1,5 +1,4 @@
-﻿
-#include "framework.h"
+﻿#include "framework.h"
 #include "0916.h"
 
 #define MAX_LOADSTRING 100
@@ -130,6 +129,10 @@ int g_flag;
 /// 나의 객체 : 0으로 모두 초기화
 RECT g_me;
 
+COLORREF g_fillColor = RGB(255, 255, 255); // Default to white
+COLORREF g_lineColor = RGB(0, 0, 0);       // Default to black
+int g_lineThickness = 1;                   // Default to 1px
+
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     switch (message)
@@ -148,6 +151,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
         g_x = -1;
         g_y = -1;
+
+        g_fillColor = RGB(255, 255, 255);
+        g_lineColor = RGB(0, 0, 0);
+        g_lineThickness = 1;
+
+        HMENU hMenu = GetMenu(hWnd);
+        CheckMenuItem(hMenu, ID_LINEWIDTH_1, MF_CHECKED);
     }
     break;
 
@@ -201,7 +211,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         /// 선의 속성을 변경 : HPEN 자료형을 사용
         HPEN myPen, osPen;      /// 내가 생성할 펜, OS의 현재 펜
         /// 펜을 생성 - OS가 펜을 생성하여 반환한다. - 동적 메모리 할당
-        myPen = CreatePen(PS_DASHDOTDOT, 1, RGB(188, 67, 200));
+        myPen = CreatePen(PS_SOLID, g_lineThickness, g_lineColor);
         /// OS에게 펜을 전달. 즉시 OS의 현재 펜이 반환된다.
         osPen = (HPEN)SelectObject(hdc, myPen);
         /// SelectObject 성공 이후로는 펜이 변경되어 있는 상태
@@ -219,7 +229,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             HBRUSH myBrush, osBrush;
 
             /// 1. 브러시를 생성한다.
-            myBrush = CreateSolidBrush(RGB(100, 200, 100));
+            myBrush = CreateSolidBrush(g_fillColor);
             /// 2. OS에게 전달하면서 동시에 현재 브러시를 백업
             osBrush = (HBRUSH)SelectObject(hdc, myBrush);
             /// 3. 사용한다.
@@ -234,8 +244,21 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         }
         else if (3 == g_flag)
         {
+            /// 면색 변경을 위한 자료형 : HBRUSH
+            HBRUSH myBrush, osBrush;
+
+            /// 1. 브러시를 생성한다.
+            myBrush = CreateSolidBrush(g_fillColor);
+            /// 2. OS에게 전달하면서 동시에 현재 브러시를 백업
+            osBrush = (HBRUSH)SelectObject(hdc, myBrush);
+
             /// Ellipse 그리기
             Ellipse(hdc, g_x, g_y, x, y);
+
+            /// 4. 원래 브러시로 변경
+            SelectObject(hdc, osBrush);
+            /// 5. 동적 생성 브러시를 해제
+            DeleteObject(myBrush);
         }
         /// TODO: 자유선 그리기
 
@@ -270,7 +293,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             if (g_x != -1)
             {
                 HPEN myPen, osPen;
-                myPen = CreatePen(PS_SOLID, 3, RGB(0, 0, 0)); // 검은색 3픽셀 펜
+                myPen = CreatePen(PS_SOLID, g_lineThickness, g_lineColor);
                 osPen = (HPEN)SelectObject(hdc, myPen);
 
                 MoveToEx(hdc, g_x, g_y, NULL);
@@ -310,6 +333,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     {
         /// 하위 16비트에서 값을 획득
         int wmId = LOWORD(wParam);
+        HMENU hMenu = GetMenu(hWnd);
         // 메뉴 선택을 구문 분석합니다:
         switch (wmId)
         {
@@ -324,6 +348,70 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             break;
         case ID_DRAW_FREE:
             g_flag = 4;
+            break;
+        case ID_FILLCOLOR_RED:
+            CheckMenuItem(hMenu, ID_FILLCOLOR_RED, MF_CHECKED);
+            CheckMenuItem(hMenu, ID_FILLCOLOR_GREEN, MF_UNCHECKED);
+            CheckMenuItem(hMenu, ID_FILLCOLOR_BLUE, MF_UNCHECKED);
+            g_fillColor = RGB(255, 0, 0);
+            break;
+        case ID_FILLCOLOR_GREEN:
+            CheckMenuItem(hMenu, ID_FILLCOLOR_RED, MF_UNCHECKED);
+            CheckMenuItem(hMenu, ID_FILLCOLOR_GREEN, MF_CHECKED);
+            CheckMenuItem(hMenu, ID_FILLCOLOR_BLUE, MF_UNCHECKED);
+            g_fillColor = RGB(0, 255, 0);
+            break;
+        case ID_FILLCOLOR_BLUE:
+            CheckMenuItem(hMenu, ID_FILLCOLOR_RED, MF_UNCHECKED);
+            CheckMenuItem(hMenu, ID_FILLCOLOR_GREEN, MF_UNCHECKED);
+            CheckMenuItem(hMenu, ID_FILLCOLOR_BLUE, MF_CHECKED);
+            g_fillColor = RGB(0, 0, 255);
+            break;
+        case ID_LINECOLOR_RED:
+            CheckMenuItem(hMenu, ID_LINECOLOR_RED, MF_CHECKED);
+            CheckMenuItem(hMenu, ID_LINECOLOR_GREEN, MF_UNCHECKED);
+            CheckMenuItem(hMenu, ID_LINECOLOR_BLUE, MF_UNCHECKED);
+            g_lineColor = RGB(255, 0, 0);
+            break;
+        case ID_LINECOLOR_GREEN:
+            CheckMenuItem(hMenu, ID_LINECOLOR_RED, MF_UNCHECKED);
+            CheckMenuItem(hMenu, ID_LINECOLOR_GREEN, MF_CHECKED);
+            CheckMenuItem(hMenu, ID_LINECOLOR_BLUE, MF_UNCHECKED);
+            g_lineColor = RGB(0, 255, 0);
+            break;
+        case ID_LINECOLOR_BLUE:
+            CheckMenuItem(hMenu, ID_LINECOLOR_RED, MF_UNCHECKED);
+            CheckMenuItem(hMenu, ID_LINECOLOR_GREEN, MF_UNCHECKED);
+            CheckMenuItem(hMenu, ID_LINECOLOR_BLUE, MF_CHECKED);
+            g_lineColor = RGB(0, 0, 255);
+            break;
+        case ID_LINEWIDTH_1:
+            CheckMenuItem(hMenu, ID_LINEWIDTH_1, MF_CHECKED);
+            CheckMenuItem(hMenu, ID_LINEWIDTH_3, MF_UNCHECKED);
+            CheckMenuItem(hMenu, ID_LINEWIDTH_5, MF_UNCHECKED);
+            CheckMenuItem(hMenu, ID_LINEWIDTH_10, MF_UNCHECKED);
+            g_lineThickness = 1;
+            break;
+        case ID_LINEWIDTH_3:
+            CheckMenuItem(hMenu, ID_LINEWIDTH_1, MF_UNCHECKED);
+            CheckMenuItem(hMenu, ID_LINEWIDTH_3, MF_CHECKED);
+            CheckMenuItem(hMenu, ID_LINEWIDTH_5, MF_UNCHECKED);
+            CheckMenuItem(hMenu, ID_LINEWIDTH_10, MF_UNCHECKED);
+            g_lineThickness = 3;
+            break;
+        case ID_LINEWIDTH_5:
+            CheckMenuItem(hMenu, ID_LINEWIDTH_1, MF_UNCHECKED);
+            CheckMenuItem(hMenu, ID_LINEWIDTH_3, MF_UNCHECKED);
+            CheckMenuItem(hMenu, ID_LINEWIDTH_5, MF_CHECKED);
+            CheckMenuItem(hMenu, ID_LINEWIDTH_10, MF_UNCHECKED);
+            g_lineThickness = 5;
+            break;
+        case ID_LINEWIDTH_10:
+            CheckMenuItem(hMenu, ID_LINEWIDTH_1, MF_UNCHECKED);
+            CheckMenuItem(hMenu, ID_LINEWIDTH_3, MF_UNCHECKED);
+            CheckMenuItem(hMenu, ID_LINEWIDTH_5, MF_UNCHECKED);
+            CheckMenuItem(hMenu, ID_LINEWIDTH_10, MF_CHECKED);
+            g_lineThickness = 10;
             break;
         case IDM_ABOUT:
             DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
